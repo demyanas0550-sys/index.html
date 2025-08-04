@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Interactive Dots</title>
+    <title>Interactive Dot Tree</title>
     <style>
         body {
             margin: 0;
@@ -29,17 +29,32 @@
             dots.push({
                 x: Math.random() * canvas.width,
                 y: Math.random() * canvas.height,
-                radius: 8
+                radius: 8,
+                connections: [] // Store which dots this one is connected to
             });
         }
 
-        let selectedDots = [];
+        let selection = [];
 
-        function drawDots() {
+        function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw lines first
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'blue';
+            ctx.lineWidth = 2;
+            dots.forEach(dot => {
+                dot.connections.forEach(target => {
+                    ctx.beginPath();
+                    ctx.moveTo(dot.x, dot.y);
+                    ctx.lineTo(target.x, target.y);
+                    ctx.stroke();
+                });
+            });
+
+            // Draw dots on top
             ctx.shadowBlur = 20;
             ctx.shadowColor = 'white';
-
             dots.forEach(dot => {
                 ctx.beginPath();
                 ctx.arc(dot.x, dot.y, dot.radius, 0, Math.PI * 2);
@@ -48,49 +63,44 @@
             });
         }
 
-        function drawLines() {
-            ctx.shadowBlur = 0; // No glow on lines
-            ctx.strokeStyle = 'blue';
-            ctx.lineWidth = 2;
-
-            for (let i = 0; i < selectedDots.length; i += 2) {
-                if (selectedDots[i + 1]) {
-                    const d1 = selectedDots[i];
-                    const d2 = selectedDots[i + 1];
-                    ctx.beginPath();
-                    ctx.moveTo(d1.x, d1.y);
-                    ctx.lineTo(d2.x, d2.y);
-                    ctx.stroke();
-                }
+        function connectDots(d1, d2) {
+            if (!d1.connections.includes(d2)) {
+                d1.connections.push(d2);
+            }
+            if (!d2.connections.includes(d1)) {
+                d2.connections.push(d1);
             }
         }
 
-        function redraw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawDots();
-            drawLines();
-        }
-
         canvas.addEventListener('contextmenu', (e) => {
-            e.preventDefault(); // Disable right-click menu
+            e.preventDefault();
 
             const mouseX = e.clientX;
             const mouseY = e.clientY;
 
-            // Check if clicked on a dot
+            // Check if we clicked a dot
             dots.forEach(dot => {
                 const dist = Math.hypot(dot.x - mouseX, dot.y - mouseY);
                 if (dist < dot.radius + 5) {
-                    selectedDots.push(dot);
-                    if (selectedDots.length > 2) {
-                        selectedDots = selectedDots.slice(-2); // Keep only last 2
+                    // Select this dot
+                    selection.push(dot);
+
+                    // If we have 2 selections, connect them
+                    if (selection.length === 2) {
+                        const [d1, d2] = selection;
+                        if (d1 !== d2) {
+                            connectDots(d1, d2);
+                        }
+                        selection = [];
                     }
-                    redraw();
                 }
             });
+
+            draw();
         });
 
-        redraw();
+        draw();
     </script>
 </body>
 </html>
+
